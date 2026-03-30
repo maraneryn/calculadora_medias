@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Sistema de Média</title>
+
+<!--
+Sistema desenvolvido por MaraNery
+Ano: 2026
+Versão: 1.0
+-->
+
+<style>
+body {
+    background-color: white;
+    color: black;
+    font-family: Arial;
+    text-align: center;
+}
+
+.container {
+    width: 350px;
+    margin: 20px auto;
+}
+
+/* MARCA D'ÁGUA */
+.marca-dagua {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: url("foto.png");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 60%;
+    opacity: 0.05;
+    z-index: -1;
+}
+
+/* assinatura na tela */
+footer {
+    margin-top: 20px;
+    font-size: 12px;
+    opacity: 0.6;
+}
+
+input, select, button {
+    width: 100%;
+    padding: 10px;
+    margin: 5px 0;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+}
+
+button {
+    background-color: #444;
+    color: white;
+    cursor: pointer;
+}
+
+#listaNotas {
+    text-align: left;
+}
+</style>
+</head>
+
+<body>
+
+<div class="marca-dagua"></div>
+
+<div class="container">
+
+<img src="foto.png" width="100">
+
+<h2>Calcular Média</h2>
+
+<h3>Relatórios gerados</h3>
+<select id="filtroAno"></select>
+<button onclick="abrirRelatorioFiltrado()">Abrir Relatório</button>
+
+<hr>
+
+<input type="text" id="nome" placeholder="Nome do aluno">
+<input type="text" id="serie" placeholder="Série">
+<input type="text" id="sala" placeholder="Sala">
+
+<select id="turno">
+<option value="">Selecione o turno</option>
+<option>Matutino</option>
+<option>Vespertino</option>
+<option>Noturno</option>
+</select>
+
+<input type="text" id="ano" placeholder="Ano letivo">
+
+<input type="number" id="nota" placeholder="Digite a nota">
+
+<button onclick="adicionar()">Adicionar Nota</button>
+<button onclick="calcularMedia()">Calcular Média</button>
+<button onclick="limpar()">Novo Aluno</button>
+
+<div id="listaNotas"></div>
+<p id="resultado"></p>
+
+<footer>Desenvolvido por MaraNery</footer>
+
+</div>
+
+<script>
+let notas = [];
+let relatorio = JSON.parse(localStorage.getItem("relatorios")) || [];
+
+atualizarFiltro();
+
+function adicionar() {
+    let valor = document.getElementById("nota").value;
+
+    if (valor === "" || isNaN(valor)) {
+        alert("Digite uma nota válida");
+        return;
+    }
+
+    notas.push(Number(valor));
+    atualizarLista();
+    document.getElementById("nota").value = "";
+}
+
+function atualizarLista() {
+    let html = "";
+    for (let i = 0; i < notas.length; i++) {
+        html += "Nota " + (i+1) + ": " + notas[i] + "<br>";
+    }
+    document.getElementById("listaNotas").innerHTML = html;
+}
+
+function calcularMedia() {
+    let nome = document.getElementById("nome").value;
+    let serie = document.getElementById("serie").value;
+    let sala = document.getElementById("sala").value;
+    let turno = document.getElementById("turno").value;
+    let ano = document.getElementById("ano").value;
+
+    if (!nome || !turno || notas.length === 0 || !ano) {
+        alert("Preencha tudo corretamente");
+        return;
+    }
+
+    let soma = notas.reduce((a,b)=>a+b,0);
+    let media = soma / notas.length;
+    let status = media > 6 ? "Aprovado" : "Reprovado";
+
+    document.getElementById("resultado").textContent =
+    `${status} | Média: ${media.toFixed(2)}`;
+
+    let data = new Date().toLocaleDateString();
+
+    relatorio.push({nome, serie, sala, turno, ano, media: media.toFixed(2), status, data});
+
+    localStorage.setItem("relatorios", JSON.stringify(relatorio));
+
+    atualizarFiltro();
+}
+
+function atualizarFiltro() {
+    let select = document.getElementById("filtroAno");
+    let anos = [...new Set(relatorio.map(r => r.ano))];
+
+    select.innerHTML = "<option value=''>Selecione o ano</option>";
+
+    anos.forEach(a => {
+        select.innerHTML += `<option>${a}</option>`;
+    });
+}
+
+function abrirRelatorioFiltrado() {
+    let ano = document.getElementById("filtroAno").value;
+
+    if (!ano) {
+        alert("Selecione um ano");
+        return;
+    }
+
+    let dados = relatorio.filter(r => r.ano === ano);
+
+    let novaAba = window.open("", "_blank");
+
+    let html = `
+    <html>
+    <head>
+    <style>
+    body { font-family: Arial; text-align:center; }
+
+    .marca {
+        position: fixed;
+        width: 100%;
+        height: 100%;
+        background-image: url("foto.png");
+        background-repeat: no-repeat;
+        background-position: center;
+        background-size: 60%;
+        opacity: 0.05;
+        z-index: -1;
+    }
+
+    .assinatura {
+        margin-top: 60px;
+    }
+
+    @media print { button { display:none; } }
+    </style>
+    </head>
+    <body>
+
+    <div class="marca"></div>
+
+    <img src="foto.png" width="100">
+
+    <h2>Relatório ${ano}</h2>
+    <hr>
+    `;
+
+    dados.forEach(a => {
+        html += `
+        <p>
+        ${a.nome} - ${a.serie} - ${a.turno}<br>
+        Média: ${a.media} - ${a.status}<br>
+        Data: ${a.data}
+        </p>
+        <hr>
+        `;
+    });
+
+    html += `
+    <div class="assinatura">
+    ___________________________<br>
+    Assinatura e carimbo do responsável
+    </div>
+
+    <br><br>
+    <div style="font-size:12px; opacity:0.6;">
+    Desenvolvido por MaraNery
+    </div>
+
+    <br>
+    <button onclick="window.print()">Imprimir</button>
+
+    </body></html>
+    `;
+
+    novaAba.document.write(html);
+}
+
+function limpar() {
+    notas = [];
+    document.getElementById("nome").value = "";
+    document.getElementById("serie").value = "";
+    document.getElementById("sala").value = "";
+    document.getElementById("turno").value = "";
+    document.getElementById("ano").value = "";
+    document.getElementById("nota").value = "";
+    document.getElementById("listaNotas").innerHTML = "";
+    document.getElementById("resultado").textContent = "";
+}
+</script>
+
+</body>
+</html>
